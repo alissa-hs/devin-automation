@@ -64,30 +64,39 @@ def create_devin_session() -> tuple[str, str]:
 def poll_session(session_id) -> tuple[str, dict]:
     print(f"Polling session {session_id} for completion...")
 
-    while True:
-        response = requests.get(
+    max_attempts = 60
+    attempts = 0
+
+    while attempts < max_attempts:
+        try:
+            response = requests.get(
             f"{DEVIN_BASE}/session/{session_id}",
             headers=DEVIN_HEADERS
-        )
-        response.raise_for_status()
+            )
+            response.raise_for_status()
 
-        data = response.json()
-        status = data.get("status")
+            data = response.json()
+            status = data.get("status")
 
-        print(f"Session status: {status}")
+            print(f"Session status: {status} (attempt {attempts + 1}/{max_attempts})")
 
-        if status == "exit":
-            print("Session completed successfully")
-            return "success", data
-        elif status == "error":
-            print("Session encountered an error")
-            return "error", data
-        elif status == "suspended":
-            print("Session was suspended")
-            return "suspended", data
+            if status == "exit":
+                print("Session completed successfully")
+                return "success", data
+            elif status == "error":
+                print("Session encountered an error")
+                return "error", data
+            elif status == "suspended":
+                print("Session was suspended")
+                return "suspended", data
         
-        print("Session still running, checking again in 30 seconds...")
+            print("Session still running, checking again in 30 seconds...")
+
+        except requests.exceptions.RequestException as e:
+            print(f"Polling error (will retry): {e}")
+        
         time.sleep(30)
+        attempts += 1
 
 def post_github_comment(status, session_id, session_url):
     if status == "success":
