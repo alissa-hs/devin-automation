@@ -1,0 +1,33 @@
+name: Devin Fix Automation
+
+on:
+  repository_dispatch:
+    types: [devin-fix]
+
+jobs:
+  remediate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout devin-automation repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run orchestrator
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          DEVIN_ORG_ID: ${{ secrets.DEVIN_ORG_ID }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.client_payload.issue_number }}
+          ISSUE_TITLE: ${{ github.event.client_payload.issue_title }}
+          ISSUE_BODY: ${{ github.event.client_payload.issue_body }}
+          ISSUE_URL: ${{ github.event.client_payload.issue_url }}
+          REPO: ${{ github.event.client_payload.repo }}
+        run: python scripts/orchestrate.py
+
